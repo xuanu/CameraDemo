@@ -3,6 +3,7 @@ package demo.zeffect.cn.camerademo;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
@@ -15,6 +16,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -135,6 +137,37 @@ public class CameraActivity extends Activity {
             mCamera.startPreview();
             mCamera.autoFocus(mAutoFocusCallback);
             isPreview = true;
+            initCamera();
+        }
+    }
+
+    // 初始化相机
+    public void initCamera() {
+        if (null != mCamera) {
+            Camera.Parameters myParam = mCamera.getParameters();
+            int picbestWidth = 0;
+            int picbestHeight = 0;
+            int prebestWidth = 0;
+            int prebestHeight = 0;
+            List<Camera.Size> pictureSizes = myParam.getSupportedPictureSizes();
+            List<Camera.Size> previewSizes = myParam.getSupportedPreviewSizes();
+            for (int i = 0; i < previewSizes.size(); i++) {
+                Camera.Size size = previewSizes.get(i);
+                if (size.width > prebestWidth && size.height > prebestHeight) {
+                    prebestWidth = size.width;
+                    prebestHeight = size.height;
+                }
+            }
+            for (int i = 0; i < pictureSizes.size(); i++) {
+                Camera.Size size = pictureSizes.get(i);
+                if (size.width > picbestWidth && size.height > picbestHeight && size.width <= prebestWidth && size.height <= prebestHeight) {
+                    picbestWidth = size.width;
+                    picbestHeight = size.height;
+                }
+            }
+            myParam.setPictureSize(picbestWidth, picbestHeight);// 照片实际尺寸。
+            mCamera.setParameters(myParam);// ToneGenerator
+            mCamera.startPreview();// 开始预览。
         }
     }
 
@@ -186,11 +219,11 @@ public class CameraActivity extends Activity {
         public void onPictureTaken(byte[] data, Camera camera) {
             //根据拍照的数据创建位图
             final Bitmap bm = BitmapFactory.decodeByteArray(data, 0, data.length);
-            File file = new File(Environment.getExternalStorageDirectory(), "testPicture.jpg");
+            File file = new File(CameraActivity.this.getExternalFilesDir("photo"), System.currentTimeMillis() + ".jpg");
             FileOutputStream outStream = null;
             try {
                 outStream = new FileOutputStream(file);
-                bm.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
+                bm.compress(Bitmap.CompressFormat.JPEG, 80, outStream);
                 outStream.close();
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
